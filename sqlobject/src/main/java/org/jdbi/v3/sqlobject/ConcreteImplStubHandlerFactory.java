@@ -13,19 +13,18 @@
  */
 package org.jdbi.v3.sqlobject;
 
-import org.jdbi.v3.core.JdbiException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Optional;
 
-/**
- * Thrown when constructing a SqlObject fails.
- */
-public class UnableToCreateSqlObjectException extends JdbiException {
-    private static final long serialVersionUID = 1L;
+public class ConcreteImplStubHandlerFactory implements HandlerFactory {
+    @Override
+    public Optional<Handler> buildHandler(Class<?> sqlObjectType, Method method) {
+        if (!Modifier.isAbstract(sqlObjectType.getModifiers()) || Modifier.isAbstract(method.getModifiers())) {
+            return Optional.empty();
+        }
 
-    public UnableToCreateSqlObjectException(String message) {
-        super(message);
-    }
-
-    public UnableToCreateSqlObjectException(Throwable cause) {
-        super(cause);
+        // concrete class has an implementation, we will never use the handler.
+        return Optional.of((t, a, h) -> { throw new UnsupportedOperationException(); });
     }
 }

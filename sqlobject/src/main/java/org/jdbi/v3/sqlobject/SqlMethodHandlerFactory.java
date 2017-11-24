@@ -89,10 +89,13 @@ class SqlMethodHandlerFactory implements HandlerFactory {
     }
 
     private RuntimeException toUnchecked(Throwable t) {
+        if (t instanceof Error) {
+            throw (Error) t;
+        }
         if (t instanceof RuntimeException) {
-            return (RuntimeException) t;
+            throw (RuntimeException) t;
         }
 
-        return new RuntimeException(t);
+        throw new RuntimeException(t);
     }
 }

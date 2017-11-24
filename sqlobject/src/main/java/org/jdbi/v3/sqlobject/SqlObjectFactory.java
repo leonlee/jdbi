@@ -21,9 +21,11 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.BiConsumer;
@@ -50,6 +52,10 @@ public class SqlObjectFactory implements ExtensionFactory {
     @Override
     public boolean accepts(Class<?> extensionType) {
         if (looksLikeSqlObject(extensionType)) {
+            if (extensionType.getAnnotation(Generate.class) != null) {
+                return true;
+            }
+
             if (!extensionType.isInterface()) {
                 throw new IllegalArgumentException("SQL Objects are only supported for interfaces.");
             }
@@ -99,6 +105,20 @@ public class SqlObjectFactory implements ExtensionFactory {
                 configurer.configureForType(instanceConfig, annotation, extensionType));
 
         InvocationHandler invocationHandler = createInvocationHandler(extensionType, instanceConfig, handlers, handle);
+
+        if (extensionType.getAnnotation(Generate.class) != null) {
+            try {
+                return extensionType.cast(
+                    Class.forName(extensionType.getPackage().getName() + "." + extensionType.getSimpleName() + "Impl")
+                        .getConstructor(HandleSupplier.class, Map.class)
+                        .newInstance(handle, handlers));
+            } catch (ReflectiveOperationException e) {
+                throw new UnableToCreateSqlObjectException(e);
+            } catch (ExceptionInInitializerError e) {
+                throw new UnableToCreateSqlObjectException(e.getCause());
+            }
+        }
+
         return extensionType.cast(
                 Proxy.newProxyInstance(
                         extensionType.getClassLoader(),
@@ -120,7 +140,11 @@ public class SqlObjectFactory implements ExtensionFactory {
                 handlers.putAll(handlerEntry((t, a, h) -> null, sqlObjectType, "finalize"));
             } catch (IllegalStateException expected) { } // optional implementation
 
-            for (Method method : sqlObjectType.getMethods()) {
+            final List<Method> methods = new ArrayList<>();
+            methods.addAll(Arrays.asList(sqlObjectType.getMethods()));
+            methods.addAll(Arrays.asList(sqlObjectType.getDeclaredMethods()));
+
+            for (Method method : methods) {
                 handlers.computeIfAbsent(method, m -> buildMethodHandler(sqlObjectType, m, registry, decorators));
             }
 

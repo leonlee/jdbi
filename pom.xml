@@ -456,5 +456,6 @@
         <module>bom</module>
         <module>noparameters</module>
         <module>vavr</module>
+        <module>generator</module>
     </modules>
 </project>

@@ -13,13 +13,14 @@
  */
 package org.jdbi.v3.sqlobject;
 
+import static org.jdbi.v3.core.internal.JdbiStreams.toStream;
+
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.jdbi.v3.core.config.JdbiConfig;
 
-import static org.jdbi.v3.core.internal.JdbiStreams.toStream;
+import org.jdbi.v3.core.config.JdbiConfig;
 
 /**
  * Registry for {@link HandlerFactory handler factories}, which produce {@link Handler handlers} for SQL object methods.
@@ -32,6 +33,7 @@ public class Handlers implements JdbiConfig<Handlers> {
     private final List<HandlerFactory> factories = new CopyOnWriteArrayList<>();
 
     public Handlers() {
+        register(new ConcreteImplStubHandlerFactory());
         register(new DefaultMethodHandlerFactory());
         register(new SqlMethodHandlerFactory());
     }
